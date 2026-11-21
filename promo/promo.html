@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<!-- AppLock promo animation. render(t) draws the frame at time t (seconds).
+     Open with ?play to watch it in a browser; render.js turns it into frames. -->
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1280px; height: 720px; overflow: hidden; background: #0d1117; font-family: "Segoe UI", system-ui, sans-serif; }
+  #stage { position: relative; width: 1280px; height: 720px; overflow: hidden; color: #e8edf3; }
+  .scene { position: absolute; inset: 0; opacity: 0; }
+  .abs { position: absolute; }
+
+  /* Title & outro */
+  .center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .bgglow { background: radial-gradient(circle at 50% 45%, #1d2a4a 0%, #0d1117 60%); }
+  .logo { width: 120px; height: 140px; }
+  .big { font-size: 72px; font-weight: 700; letter-spacing: -1px; margin-top: 18px; }
+  .tag { font-size: 30px; color: #9aa6b5; margin-top: 10px; }
+  .grad { background: linear-gradient(90deg, #4f8cff, #7c5cff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .pill { margin-top: 30px; padding: 12px 26px; border-radius: 999px; border: 1px solid #2a3340; color: #c9d3de; font-size: 22px; }
+  .dl { margin-top: 26px; background: #4f8cff; color: #fff; font-weight: 600; font-size: 24px; padding: 16px 34px; border-radius: 12px; box-shadow: 0 10px 30px rgba(79,140,255,.35); }
+
+  /* Desktop */
+  .desk { background: radial-gradient(ellipse at 70% 30%, #2b4b8c 0%, #18284d 45%, #0e1630 100%); }
+  .dicon { position: absolute; width: 88px; text-align: center; font-size: 13px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.6); border-radius: 6px; padding: 8px 0 6px; }
+  .dicon .sq { width: 48px; height: 48px; margin: 0 auto 6px; border-radius: 12px; display: grid; place-items: center; }
+  .taskbar { position: absolute; left: 0; right: 0; bottom: 0; height: 48px; background: rgba(20,24,34,.85); border-top: 1px solid rgba(255,255,255,.08); display: flex; justify-content: center; align-items: center; gap: 10px; }
+  .taskbar span { width: 30px; height: 30px; border-radius: 7px; display: inline-block; }
+
+  /* Windows-11-like dialog */
+  .dlg { position: absolute; background: #f3f3f3; color: #1b1b1b; border-radius: 9px; box-shadow: 0 24px 60px rgba(0,0,0,.55); overflow: hidden; font-size: 14px; border: 1px solid rgba(0,0,0,.2); }
+  .bar { height: 32px; display: flex; justify-content: space-between; align-items: center; padding: 0 12px; font-size: 12px; background: #fff; border-bottom: 1px solid #e5e5e5; }
+  .bar i { font-style: normal; color: #666; letter-spacing: 8px; }
+  .field { position: absolute; border: 1px solid #8a8a8a; border-bottom: 2px solid #0067c0; border-radius: 4px; background: #fff; height: 30px; padding: 4px 10px; letter-spacing: 3px; font-size: 15px; }
+  .btn { position: absolute; height: 30px; border-radius: 4px; border: 1px solid #c8c8c8; background: #fdfdfd; display: grid; place-items: center; font-size: 14px; }
+  .btn.primary { background: #0067c0; color: #fff; border-color: #0067c0; }
+  .caret { display: inline-block; width: 1px; height: 18px; background: #1b1b1b; vertical-align: -3px; margin-left: 2px; }
+
+  /* Fake chat app window */
+  .chat { position: absolute; border-radius: 10px; overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,.55); background: #313338; display: grid; grid-template-columns: 64px 200px 1fr; }
+  .chat .rail { background: #1e1f22; padding: 12px 0; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .chat .rail b { width: 44px; height: 44px; border-radius: 50%; background: #3a3c42; display: block; }
+  .chat .rail b.on { background: #5865f2; border-radius: 14px; }
+  .chat .side { background: #2b2d31; padding: 16px 12px; }
+  .chat .line { height: 10px; border-radius: 5px; background: #3f4248; margin: 12px 0; }
+  .chat .main { padding: 22px; }
+  .msg { display: grid; grid-template-columns: 40px 1fr; gap: 12px; margin-bottom: 20px; }
+  .msg b { width: 40px; height: 40px; border-radius: 50%; display: block; }
+  .msg .l1 { height: 10px; width: 120px; border-radius: 5px; background: #5c6069; margin: 4px 0 10px; }
+  .msg .l2 { height: 9px; border-radius: 5px; background: #4a4d55; }
+
+  /* AppLock manager window */
+  .win { position: absolute; background: #fbfbfb; color: #1b1b1b; border-radius: 9px; box-shadow: 0 24px 60px rgba(0,0,0,.5); overflow: hidden; font-size: 13px; border: 1px solid rgba(0,0,0,.2); }
+  .lv { position: absolute; background: #fff; border: 1px solid #d0d0d0; }
+  .lvh, .lvr { display: grid; grid-template-columns: 150px 260px 1fr; align-items: center; height: 30px; padding: 0 8px; }
+  .lvh { border-bottom: 1px solid #e3e3e3; color: #444; }
+  .lvr .nm { display: flex; align-items: center; gap: 8px; }
+  .ico { width: 18px; height: 18px; border-radius: 5px; display: inline-block; flex: none; }
+  .loc { color: #555; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding-right: 8px; }
+  .side-btn { position: absolute; width: 130px; height: 30px; border: 1px solid #c8c8c8; background: #fdfdfd; border-radius: 4px; display: grid; place-items: center; }
+  .pk .row { display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 10px; }
+  .pk .row .ico { width: 24px; height: 24px; border-radius: 6px; }
+  .pk .row small { color: #666; font-size: 12px; margin-left: auto; }
+
+  #cursor { position: absolute; width: 26px; height: 26px; z-index: 50; transform-origin: 3px 3px; }
+  #ripple { position: absolute; width: 40px; height: 40px; border-radius: 50%; border: 3px solid rgba(255,255,255,.85); z-index: 49; }
+
+  #cap { position: absolute; left: 0; right: 0; bottom: 78px; text-align: center; z-index: 60; }
+  #cap span { display: inline-block; background: rgba(10,14,22,.82); color: #fff; font-size: 30px; font-weight: 600; padding: 12px 28px; border-radius: 14px; border: 1px solid rgba(255,255,255,.12); }
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <!-- 1. Title -->
+  <div class="scene bgglow" id="s1">
+    <div class="center">
+      <svg class="logo" viewBox="0 0 120 140">
+        <path id="shackle" d="M30 62V42a30 30 0 0 1 60 0v20" stroke="#4f8cff" stroke-width="13" fill="none" stroke-linecap="round"/>
+        <rect x="14" y="60" width="92" height="76" rx="16" fill="#4f8cff"/>
+        <circle cx="60" cy="92" r="9" fill="#0d1117"/><rect x="56" y="96" width="8" height="18" rx="3" fill="#0d1117"/>
+      </svg>
+      <div class="big" id="t1">AppLock</div>
+      <div class="tag" id="t2">Put a password on <span class="grad">any Windows app</span></div>
+    </div>
+  </div>
+
+  <!-- 2. Desktop: opening a locked app -->
+  <div class="scene desk" id="s2">
+    <div class="dicon" id="ic-discord" style="left:20px; top:24px"><div class="sq" style="background:#5865f2"><svg width="26" height="26" viewBox="0 0 24 24" fill="#fff"><circle cx="8.5" cy="12" r="2.2"/><circle cx="15.5" cy="12" r="2.2"/></svg></div>Discord</div>
+    <div class="dicon" style="left:20px; top:124px"><div class="sq" style="background:#1b2838"><svg width="26" height="26" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="#c7d5e0" stroke-width="2.4"/><circle cx="12" cy="12" r="3" fill="#c7d5e0"/></svg></div>Steam</div>
+    <div class="dicon" style="left:20px; top:224px"><div class="sq" style="background:#2d7ff9"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c3 3 3 14 0 17M12 3.5c-3 3-3 14 0 17"/></svg></div>Browser</div>
+    <div class="dicon" style="left:20px; top:324px"><div class="sq" style="background:#e8a33d"><svg width="26" height="26" viewBox="0 0 24 24" fill="#fff"><path d="M4 7h6l2 2h8v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/></svg></div>Files</div>
+    <div class="taskbar"><span style="background:#4f8cff"></span><span style="background:#3a3f4b"></span><span style="background:#2d7ff9"></span><span style="background:#e8a33d"></span><span id="tb-chat" style="background:#3a3f4b"></span></div>
+
+    <div class="chat" id="chat" style="left:250px; top:70px; width:860px; height:520px">
+      <div class="rail"><b class="on"></b><b></b><b></b><b></b></div>
+      <div class="side"><div class="line" style="width:70%"></div><div class="line"></div><div class="line" style="width:80%"></div><div class="line" style="width:60%"></div><div class="line" style="width:75%"></div></div>
+      <div class="main">
+        <div class="msg"><b style="background:#e67e22"></b><div><div class="l1"></div><div class="l2" style="width:70%"></div></div></div>
+        <div class="msg"><b style="background:#2ecc71"></b><div><div class="l1"></div><div class="l2" style="width:85%"></div><div class="l2" style="width:50%; margin-top:8px"></div></div></div>
+        <div class="msg"><b style="background:#9b59b6"></b><div><div class="l1"></div><div class="l2" style="width:60%"></div></div></div>
+      </div>
+    </div>
+
+    <div class="dlg" id="dlg" style="left:430px; top:240px; width:420px; height:212px">
+      <div class="bar"><span>Discord is locked</span><i>— ✕</i></div>
+      <div class="abs" style="left:20px; top:52px; width:40px; height:40px; border-radius:10px; background:#5865f2; display:grid; place-items:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><circle cx="8.5" cy="12" r="2.2"/><circle cx="15.5" cy="12" r="2.2"/></svg></div>
+      <div class="abs" style="left:76px; top:48px; line-height:1.5">Discord is locked.<br>Enter the password to open it.</div>
+      <div class="field" id="pw" style="left:76px; top:100px; width:322px"></div>
+      <div class="abs" id="err" style="left:76px; top:136px; font-size:12.5px; height:18px"></div>
+      <div class="btn primary" style="left:230px; top:166px; width:86px">Unlock</div>
+      <div class="btn" style="left:324px; top:166px; width:76px">Cancel</div>
+    </div>
+  </div>
+
+  <!-- 3. Manager + installed apps picker -->
+  <div class="scene bgglow" id="s3">
+    <div class="win" id="mgr" style="left:50px; top:120px; width:700px; height:430px">
+      <div class="bar"><span>AppLock</span><i>— ▢ ✕</i></div>
+      <div class="lv" style="left:12px; top:44px; width:530px; height:372px">
+        <div class="lvh"><span>Program</span><span>Location</span><span>Password</span></div>
+        <div class="lvr"><span class="nm"><i class="ico" style="background:#5865f2"></i>Discord.exe</span><span class="loc">C:\…\Discord\Discord.exe</span><span>Master</span></div>
+        <div class="lvr"><span class="nm"><i class="ico" style="background:#2d7ff9"></i>browser.exe</span><span class="loc">C:\Program Files\Browser\browser.exe</span><span>Master</span></div>
+        <div class="lvr" id="newrow"><span class="nm"><i class="ico" style="background:#1b2838"></i>steam.exe</span><span class="loc">C:\Program Files (x86)\Steam\steam.exe</span><span>Own password</span></div>
+      </div>
+      <div class="side-btn" style="left:556px; top:44px">Lock an app…</div>
+      <div class="side-btn" style="left:556px; top:80px">Edit…</div>
+      <div class="side-btn" style="left:556px; top:116px">Unlock / remove</div>
+      <div class="side-btn" style="left:556px; top:168px; height:44px">Master password…</div>
+    </div>
+
+    <div class="win pk" id="pick" style="left:790px; top:150px; width:440px; height:410px">
+      <div class="bar"><span>Choose an installed app</span><i>✕</i></div>
+      <div class="abs" style="left:14px; top:50px">Search:</div>
+      <div class="field" id="search" style="left:70px; top:44px; width:354px; letter-spacing:0; font-size:14px; border-bottom-color:#0067c0"></div>
+      <div class="lv" id="plist" style="left:14px; top:86px; width:410px; height:310px"></div>
+    </div>
+  </div>
+
+  <!-- 4. Outro -->
+  <div class="scene bgglow" id="s4">
+    <div class="center">
+      <svg class="logo" viewBox="0 0 120 140" style="width:90px;height:105px">
+        <path d="M30 62V42a30 30 0 0 1 60 0v20" stroke="#4f8cff" stroke-width="13" fill="none" stroke-linecap="round"/>
+        <rect x="14" y="60" width="92" height="76" rx="16" fill="#4f8cff"/>
+        <circle cx="60" cy="92" r="9" fill="#0d1117"/><rect x="56" y="96" width="8" height="18" rx="3" fill="#0d1117"/>
+      </svg>
+      <div class="big" style="font-size:64px">AppLock</div>
+      <div class="tag">Free for Windows 10 &amp; 11</div>
+      <div class="dl" id="dlbtn">Download free</div>
+      <div class="pill">abedelraof.github.io/AppLock</div>
+    </div>
+  </div>
+
+  <svg id="cursor" viewBox="0 0 24 24"><path d="M3 2l15 11-6.5 1.2L15 21l-3 1.4-3.4-7L4 19z" fill="#fff" stroke="#111" stroke-width="1.3" stroke-linejoin="round"/></svg>
+  <div id="ripple"></div>
+  <div id="cap"><span></span></div>
+</div>
+
+<script>
+const DURATION = 27;
+const $ = id => document.getElementById(id);
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const p = (t, a, b) => clamp((t - a) / (b - a));
+const eo = x => 1 - Math.pow(1 - x, 3);
+const eio = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const lerp = (a, b, x) => a + (b - a) * x;
+const fade = (t, a, b, c, d) => Math.min(p(t, a, b), 1 - p(t, c, d));
+
+const APPS = [
+  ['7-Zip', '#3c3c3c'], ['Blender', '#e87d0d'], ['Browser', '#2d7ff9'], ['Discord', '#5865f2'],
+  ['Epic Games Launcher', '#2a2a2a'], ['Files', '#e8a33d'], ['Notepad++', '#7fbf3f'], ['OBS Studio', '#302e31'],
+  ['Steam', '#1b2838'], ['VLC media player', '#ff8800'],
+];
+
+const CAPTIONS = [
+  [3.7, 5.4, 'Open a locked app…'],
+  [5.8, 8.2, '…and AppLock asks for the password first'],
+  [8.4, 11.0, 'Wrong password? It stays closed.'],
+  [12.2, 15.6, 'Right password, and it opens.'],
+  [16.9, 20.4, 'Pick from your installed apps'],
+  [20.7, 22.6, 'Master password, or one per app'],
+];
+
+// Cursor path (time, x, y) and clicks, scene 2 only.
+const PATH = [[3.0, 820, 470], [3.8, 820, 470], [5.0, 62, 70], [5.6, 62, 70], [6.2, 760, 540], [7.2, 760, 540],
+              [7.8, 700, 420], [11.25, 700, 420], [12.2, 1040, 640], [16.5, 1040, 640]];
+const CLICKS = [5.12, 5.3, 7.9, 11.2];
+
+function cursorAt(t) {
+  for (let i = 0; i < PATH.length - 1; i++) {
+    const [ta, xa, ya] = PATH[i], [tb, xb, yb] = PATH[i + 1];
+    if (t <= tb) { const k = eio(p(t, ta, tb)); return [lerp(xa, xb, k), lerp(ya, yb, k)]; }
+  }
+  return PATH[PATH.length - 1].slice(1);
+}
+
+function render(t) {
+  // Scene visibility
+  $('s1').style.opacity = 1 - p(t, 2.8, 3.3);
+  $('s2').style.opacity = fade(t, 3.0, 3.5, 15.9, 16.4);
+  $('s3').style.opacity = fade(t, 16.2, 16.7, 22.6, 23.1);
+  $('s4').style.opacity = p(t, 22.8, 23.4);
+
+  // 1. Title: shackle snaps shut, text rises in
+  $('shackle').setAttribute('transform', `translate(0 ${lerp(-22, 0, eo(p(t, 0.5, 1.1)))})`);
+  $('t1').style.opacity = p(t, 0.2, 0.9); $('t1').style.transform = `translateY(${lerp(20, 0, eo(p(t, 0.2, 0.9)))}px)`;
+  $('t2').style.opacity = p(t, 1.0, 1.7); $('t2').style.transform = `translateY(${lerp(16, 0, eo(p(t, 1.0, 1.7)))}px)`;
+
+  // 2. Desktop
+  const inS2 = t > 3.0 && t < 16.4;
+  const [cx, cy] = cursorAt(t);
+  const clickK = Math.max(0, ...CLICKS.map(c => 1 - Math.abs(t - c) / 0.08));
+  $('cursor').style.display = inS2 ? 'block' : 'none';
+  $('cursor').style.left = cx + 'px'; $('cursor').style.top = cy + 'px';
+  $('cursor').style.transform = `scale(${1 - 0.15 * clamp(clickK)})`;
+  const lastClick = CLICKS.filter(c => c <= t).pop();
+  const rk = lastClick !== undefined ? p(t, lastClick, lastClick + 0.35) : 1;
+  $('ripple').style.display = inS2 && rk < 1 ? 'block' : 'none';
+  $('ripple').style.left = (cx - 20) + 'px'; $('ripple').style.top = (cy - 20) + 'px';
+  $('ripple').style.opacity = 1 - rk; $('ripple').style.transform = `scale(${0.4 + rk})`;
+  $('ic-discord').style.background = t > 5.1 && t < 5.9 ? 'rgba(255,255,255,.22)' : 'transparent';
+
+  // Password dialog
+  const dIn = eo(p(t, 5.5, 5.8)), dOut = p(t, 11.5, 11.8);
+  $('dlg').style.opacity = Math.min(dIn, 1 - dOut);
+  const shake = t > 8.3 && t < 8.75 ? Math.sin((t - 8.3) * 70) * 9 * (1 - p(t, 8.3, 8.75)) : 0;
+  $('dlg').style.transform = `translateX(${shake}px) scale(${lerp(0.94, 1, dIn) * lerp(1, 0.96, dOut)})`;
+  let dots = 0;
+  if (t < 8.3) dots = Math.floor(6 * p(t, 6.2, 7.2));
+  else if (t >= 9.6) dots = Math.floor(8 * p(t, 9.6, 10.8));
+  const caret = Math.floor(t * 2.2) % 2 === 0 && !(t > 7.9 && t < 8.3) && t < 11.2;
+  $('pw').innerHTML = '•'.repeat(dots) + (caret ? '<span class="caret"></span>' : '');
+  const err = $('err');
+  if ((t > 7.9 && t < 8.3) || t > 11.2) { err.textContent = 'Checking…'; err.style.color = '#666'; }
+  else if (t >= 8.3 && t < 9.6) { err.textContent = 'Wrong password.'; err.style.color = '#b3261e'; }
+  else if (t >= 9.6) { err.textContent = 'Wrong password.'; err.style.color = '#b3261e'; }
+  else err.textContent = '';
+
+  // Chat app opens
+  const aIn = eo(p(t, 11.9, 12.4));
+  $('chat').style.opacity = aIn; $('chat').style.transform = `scale(${lerp(0.9, 1, aIn)})`;
+  $('tb-chat').style.background = t > 11.9 ? '#5865f2' : '#3a3f4b';
+
+  // 3. Manager and picker
+  const pIn = eo(p(t, 17.4, 17.8)), pOut = p(t, 20.3, 20.6);
+  $('pick').style.opacity = Math.min(pIn, 1 - pOut);
+  $('pick').style.transform = `translateX(${lerp(40, 0, pIn)}px)`;
+  const query = 'ste'.slice(0, Math.floor(3.99 * p(t, 18.4, 19.2)));
+  $('search').textContent = query;
+  const sel = t > 19.6;
+  $('plist').innerHTML = APPS.filter(([n]) => n.toLowerCase().includes(query)).map(([n, c]) =>
+    `<div class="row" style="background:${sel && n === 'Steam' ? '#cce4f7' : 'transparent'}"><i class="ico" style="background:${c}"></i>${n}</div>`).join('');
+  const rowIn = p(t, 20.7, 21.1);
+  $('newrow').style.opacity = rowIn;
+  $('newrow').style.background = `rgba(204,228,247,${rowIn * (1 - p(t, 21.8, 22.5))})`;
+
+  // 4. Outro button pulse
+  $('dlbtn').style.transform = `scale(${1 + 0.03 * Math.sin(Math.max(0, t - 23.6) * 4)})`;
+
+  // Captions
+  const cap = CAPTIONS.find(([a, b]) => t >= a && t <= b);
+  $('cap').style.opacity = cap ? fade(t, cap[0], cap[0] + 0.3, cap[1] - 0.3, cap[1]) : 0;
+  if (cap) $('cap').firstElementChild.textContent = cap[2];
+}
+
+render(0);
+if (location.search.includes('play')) {
+  const start = performance.now();
+  (function loop() { render(((performance.now() - start) / 1000) % DURATION); requestAnimationFrame(loop); })();
+}
+</script>
+</body>
+</html>
