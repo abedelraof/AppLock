@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AppLock — Password-lock any Windows app</title>
+<meta name="description" content="AppLock is a free Windows app that asks for a password before a program opens. Master password or one per app.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='4' y='10' width='16' height='12' rx='3' fill='%234f8cff'/%3E%3Cpath d='M8 10V7a4 4 0 0 1 8 0v3' stroke='%234f8cff' stroke-width='2.5' fill='none'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #151b24; --card: #1a212c; --line: #2a3340;
+    --text: #e8edf3; --muted: #9aa6b5; --accent: #4f8cff; --accent2: #7c5cff; --ok: #3fb97f;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { overflow-x: clip; }
+  body { font-family: "Segoe UI", system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
+  nav { display: flex; align-items: center; justify-content: space-between; padding: 20px 0; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 20px; color: var(--text); }
+  .brand svg { width: 28px; height: 28px; }
+  nav .links a { color: var(--muted); margin-left: 24px; font-size: 15px; }
+
+  .hero { display: grid; grid-template-columns: 1.1fr 1fr; gap: 48px; align-items: center; padding: 56px 0 88px; }
+  h1 { font-size: clamp(34px, 5vw, 54px); line-height: 1.1; letter-spacing: -0.02em; }
+  h1 span { background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .lead { color: var(--muted); font-size: 19px; margin: 20px 0 32px; max-width: 520px; }
+  .btn { display: inline-flex; align-items: center; gap: 10px; background: var(--accent); color: #fff; padding: 14px 26px; border-radius: 10px; font-weight: 600; font-size: 17px; box-shadow: 0 8px 24px rgba(79,140,255,.3); }
+  .btn:hover { text-decoration: none; background: #6a9dff; }
+  .btn svg { width: 20px; height: 20px; }
+  .btn2 { display: inline-block; margin-left: 14px; color: var(--text); padding: 14px 20px; border: 1px solid var(--line); border-radius: 10px; font-weight: 600; }
+  .btn2:hover { text-decoration: none; border-color: var(--muted); }
+  .meta { color: var(--muted); font-size: 14px; margin-top: 14px; }
+
+  /* Illustration of the password prompt */
+  .demo { position: relative; }
+  .demo::before { content: ""; position: absolute; inset: -40px; background: radial-gradient(circle at 50% 50%, rgba(124,92,255,.25), transparent 65%); z-index: 0; }
+  .dlg { position: relative; z-index: 1; background: #f3f3f3; color: #1b1b1b; border-radius: 10px; box-shadow: 0 30px 60px rgba(0,0,0,.5); overflow: hidden; max-width: 420px; margin: 0 auto; font-size: 14px; }
+  .dlg .bar { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; font-size: 12px; background: #fff; border-bottom: 1px solid #e3e3e3; }
+  .dlg .bar i { font-style: normal; color: #777; letter-spacing: 6px; }
+  .dlg .body { display: grid; grid-template-columns: 40px 1fr; gap: 14px; padding: 20px 20px 8px; }
+  .appicon { width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #5865f2, #7983f5); display: grid; place-items: center; }
+  .appicon svg { width: 22px; height: 22px; }
+  .field { margin-top: 12px; border: 1px solid #8a8a8a; border-bottom: 2px solid #0067c0; border-radius: 4px; background: #fff; padding: 6px 10px; letter-spacing: 3px; }
+  .err { color: #b3261e; font-size: 12px; height: 18px; margin-top: 6px; }
+  .dlg .btns { display: flex; justify-content: flex-end; gap: 8px; padding: 10px 20px 18px; }
+  .dlg .btns span { padding: 5px 18px; border-radius: 4px; border: 1px solid #c8c8c8; background: #fdfdfd; }
+  .dlg .btns span.primary { background: #0067c0; color: #fff; border-color: #0067c0; }
+  .caption { text-align: center; color: var(--muted); font-size: 13px; margin-top: 18px; position: relative; z-index: 1; }
+
+  section { padding: 72px 0; border-top: 1px solid var(--line); }
+  h2 { font-size: 32px; letter-spacing: -0.01em; margin-bottom: 12px; }
+  .sub { color: var(--muted); margin-bottom: 40px; max-width: 640px; }
+
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 24px; }
+  .card .ic { width: 40px; height: 40px; border-radius: 10px; background: rgba(79,140,255,.12); display: grid; place-items: center; margin-bottom: 14px; }
+  .card .ic svg { width: 22px; height: 22px; stroke: var(--accent); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .card h3 { font-size: 18px; margin-bottom: 6px; }
+  .card p { color: var(--muted); font-size: 15px; }
+
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; counter-reset: s; }
+  .step { position: relative; padding: 24px; background: var(--bg2); border-radius: 14px; border: 1px solid var(--line); }
+  .step::before { counter-increment: s; content: counter(s); display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent2)); font-weight: 700; margin-bottom: 14px; }
+  .step h3 { font-size: 18px; margin-bottom: 6px; }
+  .step p { color: var(--muted); font-size: 15px; }
+
+  .limits { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 40px; }
+  .limits li { list-style: none; color: var(--muted); padding-left: 26px; position: relative; }
+  .limits li::before { content: "!"; position: absolute; left: 0; top: 2px; width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--muted); font-size: 11px; display: grid; place-items: center; font-weight: 700; }
+  .limits b { color: var(--text); font-weight: 600; }
+
+  details { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px 20px; margin-bottom: 12px; }
+  summary { cursor: pointer; font-weight: 600; }
+  details p { color: var(--muted); margin-top: 10px; }
+  code { background: var(--bg2); border: 1px solid var(--line); padding: 1px 6px; border-radius: 5px; font-size: 14px; }
+
+  .cta { text-align: center; }
+  .cta .btn2 { margin-left: 0; }
+  footer { border-top: 1px solid var(--line); padding: 28px 0; color: var(--muted); font-size: 14px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+
+  @media (max-width: 820px) {
+    .hero { grid-template-columns: 1fr; padding-top: 24px; }
+    .grid, .steps, .limits { grid-template-columns: 1fr; }
+    nav .links { display: none; }
+    .btn2 { margin: 12px 0 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <nav>
+    <a class="brand" href="#">
+      <svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="12" rx="3" fill="#4f8cff"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="#4f8cff" stroke-width="2.5" fill="none"/><circle cx="12" cy="16" r="1.8" fill="#0d1117"/></svg>
+      AppLock
+    </a>
+    <div class="links">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#faq">FAQ</a>
+      <a href="https://github.com/abedelraof/AppLock">GitHub</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div>
+      <h1>Put a password on <span>any Windows app.</span></h1>
+      <p class="lead">AppLock asks for a password before a program opens. Lock Discord, Steam, your browser or anything else, with one master password or a separate one for each app.</p>
+      <a class="btn" href="https://github.com/abedelraof/AppLock/releases/download/v1.1.0/AppLock-Setup-1.1.0.exe">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M6 11l6 6 6-6M4 21h16"/></svg>
+        Download for Windows
+      </a>
+      <a class="btn2" href="https://github.com/abedelraof/AppLock">View source</a>
+      <p class="meta">Free · Source on GitHub · Version 1.1.0 · Windows 10/11 (64-bit) · 43 MB</p>
+    </div>
+
+    <div class="demo" aria-hidden="true">
+      <div class="dlg">
+        <div class="bar"><span>Discord is locked</span><i>— ✕</i></div>
+        <div class="body">
+          <div class="appicon"><svg viewBox="0 0 24 24" fill="#fff"><circle cx="8.5" cy="12" r="2"/><circle cx="15.5" cy="12" r="2"/></svg></div>
+          <div>
+            Discord is locked.<br>Enter the password to open it.
+            <div class="field">••••••••</div>
+            <div class="err"></div>
+          </div>
+        </div>
+        <div class="btns"><span class="primary">Unlock</span><span>Cancel</span></div>
+      </div>
+      <p class="caption">What you see when you open a locked app</p>
+    </div>
+  </header>
+</div>
+
+<section id="features">
+  <div class="wrap">
+    <h2>Simple, and does the one job well</h2>
+    <p class="sub">No accounts, no cloud, no subscription. AppLock runs on your PC and stays out of the way until a locked app is opened.</p>
+    <div class="grid">
+      <div class="card">
+        <div class="ic"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
+        <h3>Master or per-app passwords</h3>
+        <p>Use one master password for everything, or give a specific app its own password.</p>
+      </div>
+      <div class="card">
+        <div class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div>
+        <h3>Pick from your installed apps</h3>
+        <p>Choose from a searchable list of your apps with their icons, or browse for any <code>.exe</code>.</p>
+      </div>
+      <div class="card">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></div>
+        <h3>One prompt per launch</h3>
+        <p>Works with apps that run many processes, like Discord, Chrome and Steam. You're asked once, not over and over.</p>
+      </div>
+      <div class="card">
+        <div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+        <h3>Slows down guessing</h3>
+        <p>After a few wrong passwords, each new try has to wait a little longer.</p>
+      </div>
+      <div class="card">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/></svg></div>
+        <h3>Passwords never stored</h3>
+        <p>Only salted PBKDF2 hashes are saved, in a settings file normal users can't change.</p>
+      </div>
+      <div class="card">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></div>
+        <h3>Clean uninstall</h3>
+        <p>Uninstalling removes every lock and the background service. Nothing is left behind.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <h2>How it works</h2>
+    <p class="sub">Set it up once in about a minute.</p>
+    <div class="steps">
+      <div class="step">
+        <h3>Install and set a master password</h3>
+        <p>Run the installer, open AppLock from the Start menu, and choose your master password.</p>
+      </div>
+      <div class="step">
+        <h3>Lock the apps you want</h3>
+        <p>Click <b>Lock an app…</b>, pick it from your installed apps, and choose which password unlocks it.</p>
+      </div>
+      <div class="step">
+        <h3>Open apps as usual</h3>
+        <p>Locked apps ask for the password first. The right password opens the app; anything else keeps it closed.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Good to know</h2>
+    <p class="sub">AppLock keeps casual snoopers out. It isn't a substitute for a separate Windows account.</p>
+    <ul class="limits">
+      <li><b>Locks by file name.</b> Renaming or copying a program's .exe gets around the lock.</li>
+      <li><b>Admins can undo it.</b> Anyone with administrator rights on the PC can remove locks.</li>
+      <li><b>Microsoft Store apps aren't supported.</b> Classic desktop programs work.</li>
+      <li><b>Stays unlocked while running.</b> An app that's still open (including in the system tray) won't ask again until it fully closes.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <h2>Questions</h2>
+    <details>
+      <summary>Windows says "Windows protected your PC". Is that normal?</summary>
+      <p>Yes. The installer isn't code-signed yet, so SmartScreen doesn't recognise it. Click <b>More info</b>, then <b>Run anyway</b>. The full source code is on GitHub if you'd like to check it or build it yourself.</p>
+    </details>
+    <details>
+      <summary>I forgot my master password. What now?</summary>
+      <p>Uninstall AppLock from <b>Settings → Apps</b>. That removes every lock, so all apps open normally again. Then reinstall and set a new password.</p>
+    </details>
+    <details>
+      <summary>Do I need to install .NET?</summary>
+      <p>No. Everything AppLock needs is included in the installer.</p>
+    </details>
+    <details>
+      <summary>Does AppLock send anything over the internet?</summary>
+      <p>No. AppLock works entirely on your PC and never connects to the internet.</p>
+    </details>
+  </div>
+</section>
+
+<section class="cta">
+  <div class="wrap">
+    <h2>Lock your first app in a minute</h2>
+    <p class="sub" style="margin: 0 auto 28px;">Free, with the full source code on GitHub.</p>
+    <a class="btn" href="https://github.com/abedelraof/AppLock/releases/download/v1.1.0/AppLock-Setup-1.1.0.exe">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M6 11l6 6 6-6M4 21h16"/></svg>
+      Download AppLock 1.1.0
+    </a>
+    <p class="meta"><a href="https://github.com/abedelraof/AppLock/releases">All releases</a></p>
+  </div>
+</section>
+
+<div class="wrap">
+  <footer>
+    <span>AppLock</span>
+    <span><a href="https://github.com/abedelraof/AppLock">Source on GitHub</a> · <a href="https://github.com/abedelraof/AppLock/issues">Report a problem</a></span>
+  </footer>
+</div>
+
+</body>
+</html>
